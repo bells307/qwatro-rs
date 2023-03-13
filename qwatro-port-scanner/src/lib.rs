@@ -1,3 +1,5 @@
+/// Builder сканера
+pub mod builder;
 /// Ошибки сканера портов
 pub mod error;
 /// Диапазон сканирования портов
@@ -5,10 +7,10 @@ pub mod range;
 /// Реализация сканирования портов
 pub mod scanner;
 
-mod task_queue;
-mod worker;
+/// Стратегии сканирования
+mod strategy;
 
-use std::net::IpAddr;
+use std::net::SocketAddr;
 
 /// Тип сканирования
 #[derive(Debug)]
@@ -20,7 +22,6 @@ pub enum ScanType {
 /// Результат сканирования
 #[derive(Debug)]
 pub struct ScanResult {
-    pub ip: IpAddr,
-    pub port: u16,
+    pub addr: SocketAddr,
     pub ty: ScanType,
 }
