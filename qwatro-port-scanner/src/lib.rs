@@ -1,14 +1,26 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+/// Ошибки сканера портов
+pub mod error;
+/// Диапазон сканирования портов
+pub mod range;
+/// Реализация сканирования портов
+pub mod scanner;
+
+mod task_queue;
+mod worker;
+
+use std::net::IpAddr;
+
+/// Тип сканирования
+#[derive(Debug)]
+pub enum ScanType {
+    TCP,
+    UDP,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+/// Результат сканирования
+#[derive(Debug)]
+pub struct ScanResult {
+    pub ip: IpAddr,
+    pub port: u16,
+    pub ty: ScanType,
 }
