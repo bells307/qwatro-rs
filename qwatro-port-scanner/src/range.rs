@@ -7,7 +7,7 @@ pub struct PortRange(Vec<u16>);
 impl PortRange {
     /// Упорядоченный диапазон портов (`min..max`).
     /// Возвращает ошибку `ScannerError::PortRangeMinGreaterThanMax` в случае, если начало диапазона
-    /// больше, чем его конечное значение.
+    /// больше, чем его конечное значение и `ScannerError::PortEqualsZero`, если одно из значений 0.
     /// ```
     /// use qwatro_port_scanner::range::PortRange;
     ///
@@ -19,6 +19,10 @@ impl PortRange {
     /// );
     /// ```
     pub fn ordered(min: u16, max: u16) -> Result<Self, ScannerError> {
+        if min == 0 || max == 0 {
+            return Err(ScannerError::PortEqualsZero);
+        }
+
         if min > max {
             return Err(ScannerError::PortRangeMinGreaterThanMax);
         }
@@ -37,8 +41,12 @@ impl PortRange {
     ///     vec![1000, 2000, 3000]
     /// );
     /// ```
-    pub fn specific(ports: Vec<u16>) -> Self {
-        Self(ports)
+    pub fn specific(ports: Vec<u16>) -> Result<Self, ScannerError> {
+        if ports.iter().any(|p| *p == 0) {
+            return Err(ScannerError::PortEqualsZero);
+        };
+
+        Ok(Self(ports))
     }
 }
 
@@ -75,12 +83,25 @@ mod tests {
     }
 
     #[test]
+    fn ordered_zero_port() {
+        assert_eq!(PortRange::ordered(0, 0), Err(ScannerError::PortEqualsZero));
+    }
+
+    #[test]
     fn specific() {
-        let range = PortRange::specific(vec![1000, 2000, 3000]);
+        let range = PortRange::specific(vec![1000, 2000, 3000]).unwrap();
 
         assert_eq!(
             range.into_iter().collect::<Vec<_>>(),
             vec![1000, 2000, 3000]
+        );
+    }
+
+    #[test]
+    fn specific_zero_port() {
+        assert_eq!(
+            PortRange::specific(vec![0, 1000]),
+            Err(ScannerError::PortEqualsZero)
         );
     }
 }
