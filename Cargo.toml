@@ -3,4 +3,5 @@
 members = [
     "qwatro",
     "qwatro-port-scanner",
+    "qwatro-proxy"
 ]
