@@ -68,23 +68,25 @@ Options:
 ## TCP
 To run program as tcp proxy use `qwatro proxy tcp` subcommand:
 ```
-Usage: qwatro.exe proxy tcp <LISTEN> <SERVER>
+Usage: qwatro.exe proxy tcp [HOST_TO_SERVER]...
 
 Arguments:
-  <LISTEN>  
-  <SERVER>
+  [HOST_TO_SERVER]...  List of host to server mapping. Example: 127.0.0.1:9998>127.0.0.1:9999
 
 Options:
   -h, --help  Print help
 ```
 
-- `LISTEN` - address for listening incoming connections
-- `SERVER` - remote address
-
 ### Example:
 ```
 # proxying 127.0.0.1:9998 -> 127.0.0.1:9999
-qwatro proxy tcp 127.0.0.1:9998 127.0.0.1:9999`
+qwatro proxy tcp 127.0.0.1:9998>127.0.0.1:9999`
+```
+
+You can specify several proxy tasks:
+
+```
+qwatro proxy tcp 127.0.0.1:9998>127.0.0.1:9999 127.0.0.1:10000>127.0.0.1:10001
 ```
 
 ## UDP

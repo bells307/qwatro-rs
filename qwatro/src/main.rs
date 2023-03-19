@@ -58,12 +58,15 @@ async fn scan(ct: CancellationToken, args: PortScanArgs) {
 /// Запуск проксирования
 async fn proxy(ct: CancellationToken, args: ProxyArgs) {
     match args {
-        ProxyArgs::TCP { listen, server } => {
-            run_proxy(ct.clone(), TcpProxy, listen, server)
-                .await
-                .unwrap();
+        ProxyArgs::TCP(args) => {
+            run_proxy(
+                ct.clone(),
+                TcpProxy,
+                args.host_to_server.into_iter().collect(),
+            )
+            .await
+            .unwrap();
         }
-        ProxyArgs::UDP { .. } => todo!(),
     };
 
     ct.cancelled().await;

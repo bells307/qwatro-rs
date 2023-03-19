@@ -1,4 +1,4 @@
-use crate::strategy::ProxyStrategy;
+use crate::strategy::{HostToServerMap, ProxyStrategy};
 use async_trait::async_trait;
 use std::net::SocketAddr;
 use tokio::io::{self, AsyncWriteExt};
@@ -10,20 +10,14 @@ pub struct TcpProxy;
 
 #[async_trait]
 impl ProxyStrategy for TcpProxy {
-    async fn run(
-        &self,
-        ct: CancellationToken,
-        listen: SocketAddr,
-        server: SocketAddr,
-    ) -> io::Result<()> {
-        log::info!(
-            "starting tcp proxy, listening port: {}, remote server: {}",
-            listen,
-            server
-        );
+    async fn run(&self, ct: CancellationToken, hs_map: HostToServerMap) -> io::Result<()> {
+        for (host, server) in hs_map {
+            log::info!("starting tcp proxy, host: {}, server: {}", host, server);
 
-        let ln = TcpListener::bind(listen).await?;
-        tokio::spawn(incoming_connections_loop(ct, ln, server));
+            let ln = TcpListener::bind(host).await?;
+            tokio::spawn(incoming_connections_loop(ct.clone(), ln, server));
+        }
+
         Ok(())
     }
 }
@@ -66,7 +60,7 @@ async fn process_incoming_connection(
         tokio::select! {
             res = io::copy(&mut in_read, &mut out_write) => res.map(|_| ())?,
             _ = ct.cancelled() => {}
-        };
+        }
         out_write.shutdown().await
     };
 
