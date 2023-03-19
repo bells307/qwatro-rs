@@ -39,7 +39,7 @@ qwatro ps 192.168.100.1 -p 7000-9000 --tcp
 
 ### Output:
 ```bash
-[2023-03-19T10:10:55Z INFO  qwatro_port_scanner::scanner] start port scanning on 192.168.65.82, port range: (7000 - 9000)
+[2023-03-19T10:10:55Z INFO  qwatro_port_scanner::scanner] start port scanning on 192.168.100.1, port range: (7000 - 9000)
 [2023-03-19T10:10:55Z INFO  qwatro] 192.168.100.1:8079/TCP
 [2023-03-19T10:10:55Z INFO  qwatro] 192.168.100.1:8099/TCP
 [2023-03-19T10:10:55Z INFO  qwatro] 192.168.100.1:8089/TCP
