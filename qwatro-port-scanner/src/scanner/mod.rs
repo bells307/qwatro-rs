@@ -44,6 +44,12 @@ impl PortScanner {
     /// Запуск сканирования портов. Возвращает `Stream` успешных результатов сканирования
     /// * `ct`: `CancellationToken`, при отмене которого сканирование будет остановлено
     pub fn run<'a>(self, ct: CancellationToken) -> BoxStream<'a, ScanResult> {
+        log::info!(
+            "start port scanning on {}, port range: {}",
+            self.ip,
+            self.port_range
+        );
+
         let (task_queue_tx, task_queue_rx) = mpsc::unbounded_channel();
         task_queue::run(ct, task_queue_rx, self.ip, self.port_range);
 

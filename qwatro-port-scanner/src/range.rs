@@ -1,8 +1,13 @@
 use crate::error::ScannerError;
+use std::fmt::{Debug, Display, Formatter};
+use thiserror::__private::DisplayAsDisplay;
 
 /// Диапазон портов для сканирования
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PortRange(Vec<u16>);
+pub enum PortRange {
+    Ordered(Vec<u16>),
+    Specific(Vec<u16>),
+}
 
 impl PortRange {
     /// Упорядоченный диапазон портов (`min..max`).
@@ -27,7 +32,7 @@ impl PortRange {
             return Err(ScannerError::PortRangeMinGreaterThanMax);
         }
 
-        Ok(Self((min..=max).collect()))
+        Ok(Self::Ordered((min..=max).collect()))
     }
 
     /// Специфический набор портов
@@ -46,7 +51,7 @@ impl PortRange {
             return Err(ScannerError::PortEqualsZero);
         };
 
-        Ok(Self(ports))
+        Ok(Self::Specific(ports))
     }
 }
 
@@ -55,7 +60,33 @@ impl IntoIterator for PortRange {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        match self {
+            PortRange::Ordered(ports) => ports.into_iter(),
+            PortRange::Specific(ports) => ports.into_iter(),
+        }
+    }
+}
+
+impl Display for PortRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "({}, {})", self.x, self.y)
+        match self {
+            PortRange::Ordered(ports) => write!(
+                f,
+                "({} - {})",
+                ports.first().unwrap_or(&0),
+                ports.last().unwrap_or(&0)
+            ),
+            PortRange::Specific(ports) => write!(
+                f,
+                "({})",
+                ports
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
+        }
     }
 }
 

@@ -51,7 +51,7 @@ async fn scan(ct: CancellationToken, args: PortScanArgs) {
 
     // Выводим элементы потока результата сканирования в stdout
     while let Some(res) = stream.next().await {
-        println!("{}/{:#?}", res.addr, res.ty);
+        log::info!("{}/{:#?}", res.addr, res.ty);
     }
 }
 
@@ -59,10 +59,14 @@ async fn scan(ct: CancellationToken, args: PortScanArgs) {
 async fn proxy(ct: CancellationToken, args: ProxyArgs) {
     match args {
         ProxyArgs::TCP { listen, server } => {
-            run_proxy(ct, TcpProxy, listen, server).await.unwrap();
+            run_proxy(ct.clone(), TcpProxy, listen, server)
+                .await
+                .unwrap();
         }
         ProxyArgs::UDP { .. } => todo!(),
     };
+
+    ct.cancelled().await;
 }
 
 /// Future, которая будет ожидать сигнала завершения приложения, после чего завершать `CancellationToken`

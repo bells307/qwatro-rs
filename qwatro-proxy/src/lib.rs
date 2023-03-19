@@ -1,13 +1,17 @@
 pub mod tcp;
 
-mod proxier;
+mod strategy;
 
-use crate::proxier::ProxyStrategy;
+use crate::strategy::ProxyStrategy;
 use std::net::SocketAddr;
 use tokio::io;
 use tokio_util::sync::CancellationToken;
 
 /// Запуск проксирования
+/// * `ct`: `CancellationToken`, по завершении которого задача проксирования будет остановлена
+/// * `strategy`: стратегия проксирования
+/// * `listen`: адрес, на котором будет открыт порт входящих соединений
+/// * `server`: адрес, на который будет происходить проксирование
 pub async fn run_proxy(
     ct: CancellationToken,
     strategy: impl ProxyStrategy,
@@ -15,27 +19,4 @@ pub async fn run_proxy(
     server: SocketAddr,
 ) -> io::Result<()> {
     strategy.run(ct, listen, server).await
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::run_proxy;
-    use crate::tcp::TcpProxy;
-    use tokio_util::sync::CancellationToken;
-
-    #[tokio::test]
-    async fn it_works() {
-        let ct = CancellationToken::new();
-
-        run_proxy(
-            ct.clone(),
-            TcpProxy,
-            "127.0.0.1:9998".parse().unwrap(),
-            "127.0.0.1:9999".parse().unwrap(),
-        )
-        .await
-        .unwrap();
-
-        ct.cancelled().await;
-    }
 }

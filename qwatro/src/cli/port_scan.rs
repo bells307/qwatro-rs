@@ -29,7 +29,7 @@ fn port_range_parser(s: &str) -> Result<PortRange, String> {
         PortRange::ordered(min, max).map_err(|e| e.to_string())
     } else if splitted.len() == 1 {
         let port = splitted[0].parse::<u16>().map_err(|e| e.to_string())?;
-        Ok(PortRange::specific(vec![port]))
+        Ok(PortRange::specific(vec![port]).map_err(|e| e.to_string())?)
     } else {
         Err("port range can't contain more than 2 values".into())
     }

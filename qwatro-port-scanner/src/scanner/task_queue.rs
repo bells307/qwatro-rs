@@ -29,7 +29,13 @@ pub fn run(
                 // Воркеры увидят, что канал закрыт и завершат работу
                 _ = ct.cancelled() => break,
                 Some(tx) = task_queue_rx.recv() => {
-                    let _ = tx.send(task_queue.pop_front());
+                    let task = task_queue.pop_front();
+                    let ended = task.is_none();
+                    let _ = tx.send(task);
+                    if ended {
+                        log::debug!("port scan tasks queue ended");
+                        break;
+                    }
                 }
             }
         }
