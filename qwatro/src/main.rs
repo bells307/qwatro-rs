@@ -1,60 +1,73 @@
 mod cli;
 
+use crate::cli::port_scan::PortScanArgs;
+use crate::cli::proxy::ProxyArgs;
 use crate::cli::{Cli, Commands};
 use clap::Parser;
 use futures::StreamExt;
 use qwatro_port_scanner::builder::PortScannerBuilder;
-use qwatro_port_scanner::range::PortRange;
-use std::net::IpAddr;
+use qwatro_proxy::run_proxy;
+use qwatro_proxy::tcp::TcpProxy;
+use std::env;
 use std::time::Duration;
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() {
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info");
+    }
+
+    env_logger::init();
+
     let cli = Cli::parse();
 
+    // Глобальный `CancellationToken`, который будет передаваться в компоненты приложения
+    let ct = CancellationToken::new();
+    tokio::spawn(shutdown(ct.clone()));
+
     match cli.command {
-        Commands::PS {
-            ip,
-            port_range,
-            tcp,
-            tcp_resp_timeout,
-            max_tasks,
-        } => scan(ip, port_range, tcp, tcp_resp_timeout, max_tasks).await,
+        Commands::PS(args) => scan(ct, args).await,
+        Commands::Proxy(args) => proxy(ct, args).await,
     };
 }
 
-async fn scan(
-    ip: IpAddr,
-    port_range: PortRange,
-    tcp: bool,
-    tcp_resp_timeout: u64,
-    max_tasks: usize,
-) {
+/// Запуск сканирования портов
+async fn scan(ct: CancellationToken, args: PortScanArgs) {
     let mut builder = PortScannerBuilder::new()
-        .ip(ip)
-        .port_range(port_range)
-        .max_tasks(max_tasks);
+        .ip(args.ip)
+        .port_range(args.port_range)
+        .max_tasks(args.max_tasks);
 
-    if tcp {
-        builder = builder.tcp(Some(Duration::from_millis(tcp_resp_timeout)));
+    if args.tcp {
+        builder = builder.tcp(Some(Duration::from_millis(args.tcp_resp_timeout)));
     }
 
     let scanner = builder.build();
 
-    let ct = CancellationToken::new();
-    tokio::spawn(shutdown(ct.clone()));
-
+    // Запускаем сканер
     let mut stream = scanner.run(ct);
 
+    // Выводим элементы потока результата сканирования в stdout
     while let Some(res) = stream.next().await {
         println!("{}/{:#?}", res.addr, res.ty);
     }
 }
 
+/// Запуск проксирования
+async fn proxy(ct: CancellationToken, args: ProxyArgs) {
+    match args {
+        ProxyArgs::TCP { listen, server } => {
+            run_proxy(ct, TcpProxy, listen, server).await.unwrap();
+        }
+        ProxyArgs::UDP { .. } => todo!(),
+    };
+}
+
+/// Future, которая будет ожидать сигнала завершения приложения, после чего завершать `CancellationToken`
 async fn shutdown(ct: CancellationToken) {
     signal::ctrl_c().await.unwrap();
-    println!("got ctrl + c signal");
+    log::info!("got ctrl + c signal");
     ct.cancel();
 }
