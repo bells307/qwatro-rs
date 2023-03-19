@@ -1,6 +1,7 @@
 pub mod tcp;
 
 mod strategy;
+mod udp;
 
 use crate::strategy::ProxyStrategy;
 use std::net::SocketAddr;

@@ -1,6 +1,5 @@
 use crate::error::ScannerError;
 use std::fmt::{Debug, Display, Formatter};
-use thiserror::__private::DisplayAsDisplay;
 
 /// Диапазон портов для сканирования
 #[derive(Debug, Eq, PartialEq, Clone)]

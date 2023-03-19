@@ -23,45 +23,64 @@ impl ProxyStrategy for TcpProxy {
         );
 
         let ln = TcpListener::bind(listen).await?;
-
-        tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    Ok((mut in_stream, addr)) = ln.accept() => {
-                        log::debug!("incoming tcp connection: {}", addr);
-
-                        let mut out_stream = match TcpStream::connect(server).await {
-                            Ok(s) => s,
-                            Err(err) => {
-                                log::error!("can't connect to server {}: {}", server, err);
-                                continue;
-                            }
-                        };
-
-                        let (mut ri, mut wi) = in_stream.split();
-                        let (mut ro, mut wo) = out_stream.split();
-
-                        let client_to_server = async {
-                            io::copy(&mut ri, &mut wo).await?;
-                            wo.shutdown().await
-                        };
-
-                        let server_to_client = async {
-                            io::copy(&mut ro, &mut wi).await?;
-                            wi.shutdown().await
-                        };
-
-                        if let Err(err) = tokio::try_join!(client_to_server, server_to_client) {
-                            log::error!("{}", err);
-                        };
-
-                        log::debug!("closed tcp connection: {}", addr);
-                    }
-                    _ = ct.cancelled() => break
-                }
-            }
-        });
-
+        tokio::spawn(incoming_connections_loop(ct, ln, server));
         Ok(())
     }
+}
+
+/// Цикл приема входящих TCP-подключений
+async fn incoming_connections_loop(ct: CancellationToken, ln: TcpListener, server: SocketAddr) {
+    loop {
+        tokio::select! {
+            Ok((in_stream, in_addr)) = ln.accept() => {
+                // На каждое подключение создаем таск обработки подключения
+                tokio::spawn(process_incoming_connection(ct.clone(), in_stream, in_addr, server));
+            }
+            // `CancellationToken` отменен, больше не нужно принимать входящие соединения
+            _ = ct.cancelled() => break
+        }
+    }
+}
+
+/// Обработка входящего TCP-соединения
+async fn process_incoming_connection(
+    ct: CancellationToken,
+    mut in_stream: TcpStream,
+    in_addr: SocketAddr,
+    server: SocketAddr,
+) {
+    log::debug!("incoming tcp connection: {}", in_addr);
+
+    let mut out_stream = match TcpStream::connect(server).await {
+        Ok(s) => s,
+        Err(err) => {
+            log::error!("can't connect to server {}: {}", server, err);
+            return;
+        }
+    };
+
+    let (mut in_read, mut in_write) = in_stream.split();
+    let (mut out_read, mut out_write) = out_stream.split();
+
+    let client_to_server = async {
+        tokio::select! {
+            res = io::copy(&mut in_read, &mut out_write) => res.map(|_| ())?,
+            _ = ct.cancelled() => {}
+        };
+        out_write.shutdown().await
+    };
+
+    let server_to_client = async {
+        tokio::select! {
+            res = io::copy(&mut out_read, &mut in_write) => res.map(|_| ())?,
+            _ = ct.cancelled() => {}
+        }
+        in_write.shutdown().await
+    };
+
+    if let Err(err) = tokio::try_join!(client_to_server, server_to_client) {
+        log::error!("{}", err);
+    };
+
+    log::debug!("closed tcp connection: {}", in_addr);
 }

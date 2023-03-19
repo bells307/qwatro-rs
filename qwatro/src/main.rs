@@ -16,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 #[tokio::main]
 async fn main() {
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "info");
+        env::set_var("RUST_LOG", "debug");
     }
 
     env_logger::init();
@@ -72,6 +72,6 @@ async fn proxy(ct: CancellationToken, args: ProxyArgs) {
 /// Future, которая будет ожидать сигнала завершения приложения, после чего завершать `CancellationToken`
 async fn shutdown(ct: CancellationToken) {
     signal::ctrl_c().await.unwrap();
-    log::info!("got ctrl + c signal");
+    log::info!("got shutdown signal");
     ct.cancel();
 }
