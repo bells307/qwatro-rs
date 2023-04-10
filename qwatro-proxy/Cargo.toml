@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.67"
+bytes = "1.4.0"
 futures = "0.3.27"
 log = "0.4.17"
 tokio = { version = "1.26.0", features = ["net", "io-util", "time", "macros", "rt-multi-thread"] }
-tokio-util = "0.7.7"
+tokio-util = { version = "0.7.7", features = ["net", "codec"] }
+udp-stream = "0.0.3"

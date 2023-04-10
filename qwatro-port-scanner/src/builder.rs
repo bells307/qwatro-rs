@@ -58,7 +58,7 @@ impl PortScannerBuilder {
 
     /// Включить режим tcp-сканирования
     ///
-    /// `respTimeout` - максимальное время ожидания установления подключения. Если `None` - будет
+    /// `resp_timeout` - максимальное время ожидания установления подключения. Если `None` - будет
     /// взято значение по умолчанию
     pub fn tcp(mut self, resp_timeout: Option<Duration>) -> Self {
         self.strategies
