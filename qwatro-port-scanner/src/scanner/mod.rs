@@ -4,12 +4,13 @@ mod task_queue;
 mod worker;
 
 use crate::range::PortRange;
-use crate::strategy::ScanStrategy;
+use crate::strategy::{self, ScanStrategy};
 use crate::ScanResult;
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use std::net::IpAddr;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
@@ -18,12 +19,12 @@ use tokio_util::sync::CancellationToken;
 pub struct PortScanner {
     /// IP-адрес
     ip: IpAddr,
-    /// Диапазон партов
+    /// Диапазон портов
     port_range: PortRange,
     /// Максимальное количество параллельно запущенных задач сканирования
     max_tasks: usize,
     /// Стратегии сканирования
-    strategies: Arc<Vec<Box<dyn ScanStrategy + Send + Sync>>>,
+    strategies: Arc<[Box<dyn ScanStrategy>]>,
 }
 
 impl PortScanner {
@@ -31,20 +32,20 @@ impl PortScanner {
         ip: IpAddr,
         port_range: PortRange,
         max_tasks: usize,
-        strategies: Arc<Vec<Box<dyn ScanStrategy + Send + Sync>>>,
+        resp_timeout: Option<Duration>,
     ) -> Self {
         Self {
             ip,
             port_range,
             max_tasks,
-            strategies,
+            strategies: Arc::new(strategy::strategies(resp_timeout)),
         }
     }
 
     /// Запуск сканирования портов. Возвращает `Stream` успешных результатов сканирования
     /// * `ct`: `CancellationToken`, при отмене которого сканирование будет остановлено
     pub fn run<'a>(self, ct: CancellationToken) -> BoxStream<'a, ScanResult> {
-        log::info!(
+        log::debug!(
             "start port scanning on {}, port range: {}",
             self.ip,
             self.port_range

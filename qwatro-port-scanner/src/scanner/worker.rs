@@ -14,7 +14,7 @@ use tokio::sync::oneshot;
 pub fn spawn(
     task_queue_tx: UnboundedSender<oneshot::Sender<Option<SocketAddr>>>,
     scan_res_tx: UnboundedSender<ScanResult>,
-    strategies: Arc<Vec<Box<dyn ScanStrategy + Send + Sync>>>,
+    strategies: Arc<[Box<dyn ScanStrategy>]>,
 ) {
     tokio::spawn(async move {
         loop {

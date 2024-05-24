@@ -20,7 +20,7 @@ pub fn run(
         // Очередь задач сканирования на выполнение
         let mut task_queue = port_range
             .into_iter()
-            .map(|p| SocketAddr::new(ip, p))
+            .map(|p| SocketAddr::new(ip, p.get()))
             .collect::<VecDeque<_>>();
 
         loop {
